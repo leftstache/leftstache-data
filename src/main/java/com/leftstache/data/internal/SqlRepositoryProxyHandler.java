@@ -23,7 +23,7 @@ public class SqlRepositoryProxyHandler implements InvocationHandler {
 		UpdateSqlQuery updateAnnotation = method.getAnnotation(UpdateSqlQuery.class);
 		if(updateAnnotation != null) {
 			try(Connection connection = dataSource.getConnection()) {
-				result = executeUpdate(connection, updateAnnotation, method);
+				result = executeUpdate(connection, updateAnnotation, method, args);
 			}
 		} else {
 			throw new LeftstacheDataException.MissingQueryAnnotationException(method);
@@ -38,9 +38,25 @@ public class SqlRepositoryProxyHandler implements InvocationHandler {
 		}
 	}
 
-	private int executeUpdate(Connection connection, UpdateSqlQuery query, Method method) throws SQLException {
-		try(PreparedStatement statement = connection.prepareStatement(query.value())) {
+	private int executeUpdate(Connection connection, UpdateSqlQuery query, Method method, Object[] args) throws SQLException {
+		try(NamedPreparedStatement statement = NamedPreparedStatement.prepareStatement(connection, query.value())) {
+			setParameters(statement, method.getParameters(), args);
+
 			return statement.executeUpdate();
+		}
+	}
+
+	private void setParameters(NamedPreparedStatement statement, Parameter[] parameters, Object[] args) throws SQLException {
+		if(parameters != null) {
+			assert parameters.length == (args == null ? 0 : args.length) : "Something screwy is going on with reflection or proxies: args ("+args.length+") and parameters ("+parameters.length+") have different lengths";
+
+			for (int i = 0; i < parameters.length; i++) {
+				Parameter parameter = parameters[i];
+				String name = parameter.getName();
+				Object value = args[i];
+
+				statement.setParameter(name, value);
+			}
 		}
 	}
 }
