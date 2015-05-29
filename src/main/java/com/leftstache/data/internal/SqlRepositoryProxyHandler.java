@@ -22,7 +22,9 @@ public class SqlRepositoryProxyHandler implements InvocationHandler {
 
 		UpdateSqlQuery updateAnnotation = method.getAnnotation(UpdateSqlQuery.class);
 		if(updateAnnotation != null) {
-			result = executeUpdate(updateAnnotation);
+			try(Connection connection = dataSource.getConnection()) {
+				result = executeUpdate(connection, updateAnnotation, method);
+			}
 		} else {
 			throw new LeftstacheDataException.MissingQueryAnnotationException(method);
 		}
@@ -36,11 +38,9 @@ public class SqlRepositoryProxyHandler implements InvocationHandler {
 		}
 	}
 
-	private int executeUpdate(UpdateSqlQuery query) throws SQLException {
-		try(Connection connection = dataSource.getConnection()) {
-			try(Statement statement = connection.createStatement()) {
-				return statement.executeUpdate(query.value());
-			}
+	private int executeUpdate(Connection connection, UpdateSqlQuery query, Method method) throws SQLException {
+		try(PreparedStatement statement = connection.prepareStatement(query.value())) {
+			return statement.executeUpdate();
 		}
 	}
 }
