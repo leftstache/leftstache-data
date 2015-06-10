@@ -31,4 +31,10 @@ public class LeftstacheDataException extends RuntimeException {
 			super("Unexpected return type. Expected '" + expected.getName() + "' but was '" + actual.getName() + "'");
 		}
 	}
+
+	public static class InvalidPropertyType extends LeftstacheDataException {
+		public InvalidPropertyType(String message) {
+			super(message);
+		}
+	}
 }
